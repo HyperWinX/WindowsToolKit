@@ -1,0 +1,7 @@
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Release\WindowsToolKit.exe.config
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Release\WindowsToolKit.exe
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Release\WindowsToolKit.pdb
+E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Release\WindowsToolKit.csproj.CoreCompileInputs.cache
+E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Release\WindowsToolKit.exe
+E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Release\WindowsToolKit.pdb
+E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Release\WindowsToolKit.csproj.AssemblyReference.cache
