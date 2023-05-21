@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="ErrorHandler.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="ProcessNameComparer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

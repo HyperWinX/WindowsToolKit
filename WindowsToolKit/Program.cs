@@ -17,18 +17,11 @@ namespace WindowsToolKit
         internal static string currentMode = "WTK";
         internal static string currentTask = null;
         public static bool helpExited = true;
-        public static StreamWriter logger;
+        internal static Logger log = new Logger();
 
         static void Main(string[] args)
         {
-            if (!File.Exists("log.log"))
-                File.Create("log.log").Close();
-            else
-            {
-                File.Delete("log.log");
-                File.Create("log.log").Close();
-            }
-            logger = new StreamWriter(File.Open("log.log", FileMode.Open));
+            log.LogInfo("WTK initialized");
             Console.WriteLine($"WindowsToolKit [Version {version}, Build {build}]");
             Console.WriteLine("HyperCorp copyright.");
             while (true)
@@ -42,7 +35,7 @@ namespace WindowsToolKit
                     Console.Write($"({currentMode}) >>> ");
                     requestStr = Console.ReadLine();
                     request = requestStr.Split(' ').ToList();
-                    logger.WriteLine($"Request entered: \"{request}\"");
+                    log.LogInfo($"Catched string {requestStr}, element count {request.Count}");
                     QueryHandler.Handle(request[0]);
                 }
             }
