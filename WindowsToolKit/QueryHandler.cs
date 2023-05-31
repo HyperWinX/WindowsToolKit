@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Management;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace WindowsToolKit
 {
@@ -144,12 +142,13 @@ namespace WindowsToolKit
                     Console.WriteLine("11. backupmbr <physical_drive_number> <file> - backups mbr from selected drive to specified file");
                     Console.WriteLine("12. flashmbr <physical_drive_number> <file> - flashes mbr to selected drive from specified file");
                     Console.WriteLine("13. hardscoptimize - hard service optimization, stopping a lot of services");
-                    Console.WriteLine("14. sc - Service control subsystem");
-                    Console.WriteLine("15. wpc - Process control subsystem");
-                    Console.WriteLine("16. rc - Registry control subsystem");
+                    Console.WriteLine("14. sc - service control subsystem");
+                    Console.WriteLine("15. wpc - process control subsystem");
+                    Console.WriteLine("16. rc - registry control subsystem");
                     Console.WriteLine("17. cmd - start cmd mode, all commands will be executed in command line");
                     Console.WriteLine("18. wtk - start wtk mode, all commands will be executes in WTK console");
                     Console.WriteLine("19. diskpart - start diskpart");
+                    Console.WriteLine("20. vdc - virtual disk control subsystem");
                     Console.Write("Press any key to exit...");
                     Console.Read();
                     Console.Clear();
@@ -281,7 +280,8 @@ namespace WindowsToolKit
                             if (Directory.Exists(Program.request[1]))
                                 Log.Success("Folder created successfully");
                             log.LogInfo("Created folder " + Program.request[1]);
-                        } catch (Exception ex)
+                        }
+                        catch (Exception ex)
                         {
                             log.LogError("Catched error: " + ex.Message);
                             ErrorHandler.HandleError(ex);
@@ -545,16 +545,23 @@ namespace WindowsToolKit
                         Log.Error("Not enough arguments for reading hex data.");
                         return;
                     }
-                    log.LogInfo("Reading file in hex: " + Program.request[1]);
-                    byte[] bytes = File.ReadAllBytes(Program.request[1]);
-                    log.LogInfo("Byte count: " + bytes.Length);
-                    var sb = new StringBuilder("new byte[] { ");
-                    foreach (var b in bytes)
+                    try
                     {
-                        sb.Append(b.ToString() + ", ");
+                        log.LogInfo("Reading file in hex: " + Program.request[1]);
+                        byte[] bytes = File.ReadAllBytes(Program.request[1]);
+                        log.LogInfo("Byte count: " + bytes.Length);
+                        var sb = new StringBuilder("new byte[] { ");
+                        foreach (var b in bytes)
+                        {
+                            sb.Append(b.ToString() + ", ");
+                        }
+                        sb.Append("}");
+                        Console.WriteLine(sb.ToString());
                     }
-                    sb.Append("}");
-                    Console.WriteLine(sb.ToString());
+                    catch (Exception ex)
+                    {
+                        ErrorHandler.HandleError(ex);
+                    }
                     break;
                 case "flashmbr":
                     if (Program.request.Count < 3)
@@ -595,6 +602,36 @@ namespace WindowsToolKit
                         log.LogError("Cannot flash MBR");
                         Log.Error("MBR flash failed.");
                     }
+                    break;
+                case "install":
+                    string curFilePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                    try
+                    {
+                        File.Copy(curFilePath, "C:\\Windows\\System32\\wtk.exe");
+                        Log.Success("Copied file to C:\\Windows\\System32\\");
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorHandler.HandleError(ex);
+                    }
+                    try
+                    {
+                        Environment.SetEnvironmentVariable("wtk", "C:\\Windows\\System32\\wtk.exe");
+                        Log.Success("Successfully updated PATH variable");
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorHandler.HandleError(ex);
+                    }
+                    if (File.Exists("C:\\Windows\\System32\\wtk.exe") && Environment.GetEnvironmentVariable("wtk") == "C:\\Windows\\System32\\wtk.exe")
+                        Log.Success("Successfully installed WindowsToolKit");
+                    else
+                        Log.Error("Installation failed");
+                    break;
+                case "vdc":
+                    Tools.VirtualDiskControl();
+                    break;
+                case "uninst":
                     break;
             } //Main WTK command module
         }

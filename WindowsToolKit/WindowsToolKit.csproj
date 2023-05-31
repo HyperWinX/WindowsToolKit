@@ -37,11 +37,27 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Management" />
+    <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
     <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Text.Encoding.CodePages, Version=7.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encoding.CodePages.7.0.0\lib\net462\System.Text.Encoding.CodePages.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -50,18 +66,217 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\ChsAddress.cs" />
+    <Compile Include="Core\ClusterMap.cs" />
+    <Compile Include="Core\ClusterRoles.cs" />
+    <Compile Include="Core\CoreCompat\EncodingHelper.cs" />
+    <Compile Include="Core\CoreCompat\ReflectionHelper.cs" />
+    <Compile Include="Core\DiscDirectoryInfo.cs" />
+    <Compile Include="Core\DiscFileInfo.cs" />
+    <Compile Include="Core\DiscFileLocator.cs" />
+    <Compile Include="Core\DiscFileSystem.cs" />
+    <Compile Include="Core\DiscFileSystemChecker.cs" />
+    <Compile Include="Core\DiscFileSystemInfo.cs" />
+    <Compile Include="Core\DiscFileSystemOptions.cs" />
+    <Compile Include="Core\DiskImageBuilder.cs" />
+    <Compile Include="Core\DiskImageFileSpecification.cs" />
+    <Compile Include="Core\FileLocator.cs" />
+    <Compile Include="Core\FileSystemInfo.cs" />
+    <Compile Include="Core\FileSystemManager.cs" />
+    <Compile Include="Core\FileSystemParameters.cs" />
+    <Compile Include="Core\FileTransport.cs" />
+    <Compile Include="Core\FloppyDiskType.cs" />
+    <Compile Include="Core\GenericDiskAdapterType.cs" />
+    <Compile Include="Core\Geometry.cs" />
+    <Compile Include="Core\GeometryCalculation.cs" />
+    <Compile Include="Core\GeometryTranslation.cs" />
+    <Compile Include="Core\IClusterBasedFileSystem.cs" />
+    <Compile Include="Core\IDiagnosticTraceable.cs" />
+    <Compile Include="Core\IFileSystem.cs" />
+    <Compile Include="Core\Internal\Crc32.cs" />
+    <Compile Include="Core\Internal\Crc32Algorithm.cs" />
+    <Compile Include="Core\Internal\Crc32BigEndian.cs" />
+    <Compile Include="Core\Internal\Crc32LittleEndian.cs" />
+    <Compile Include="Core\Internal\LocalFileLocator.cs" />
+    <Compile Include="Core\Internal\LogicalVolumeFactory.cs" />
+    <Compile Include="Core\Internal\LogicalVolumeFactoryAttribute.cs" />
+    <Compile Include="Core\Internal\ObjectCache.cs" />
+    <Compile Include="Core\Internal\Utilities.cs" />
+    <Compile Include="Core\Internal\VirtualDiskFactory.cs" />
+    <Compile Include="Core\Internal\VirtualDiskFactoryAttribute.cs" />
+    <Compile Include="Core\Internal\VirtualDiskTransport.cs" />
+    <Compile Include="Core\Internal\VirtualDiskTransportAttribute.cs" />
+    <Compile Include="Core\InvalidFileSystemException.cs" />
+    <Compile Include="Core\IUnixFileSystem.cs" />
+    <Compile Include="Core\IWindowsFileSystem.cs" />
+    <Compile Include="Core\LogicalVolumeInfo.cs" />
+    <Compile Include="Core\LogicalVolumeStatus.cs" />
+    <Compile Include="Core\NativeFileSystem.cs" />
+    <Compile Include="Core\Partitions\BiosExtendedPartitionTable.cs" />
+    <Compile Include="Core\Partitions\BiosPartitionedDiskBuilder.cs" />
+    <Compile Include="Core\Partitions\BiosPartitionInfo.cs" />
+    <Compile Include="Core\Partitions\BiosPartitionRecord.cs" />
+    <Compile Include="Core\Partitions\BiosPartitionTable.cs" />
+    <Compile Include="Core\Partitions\BiosPartitionTypes.cs" />
+    <Compile Include="Core\Partitions\DefaultPartitionTableFactory.cs" />
+    <Compile Include="Core\Partitions\GptEntry.cs" />
+    <Compile Include="Core\Partitions\GptHeader.cs" />
+    <Compile Include="Core\Partitions\GuidPartitionInfo.cs" />
+    <Compile Include="Core\Partitions\GuidPartitionTable.cs" />
+    <Compile Include="Core\Partitions\GuidPartitionTypes.cs" />
+    <Compile Include="Core\Partitions\PartitionInfo.cs" />
+    <Compile Include="Core\Partitions\PartitionTable.cs" />
+    <Compile Include="Core\Partitions\PartitionTableFactory.cs" />
+    <Compile Include="Core\Partitions\PartitionTableFactoryAttribute.cs" />
+    <Compile Include="Core\Partitions\WellKnownPartitionType.cs" />
+    <Compile Include="Core\PhysicalVolumeInfo.cs" />
+    <Compile Include="Core\PhysicalVolumeType.cs" />
+    <Compile Include="Core\Plist.cs" />
+    <Compile Include="Core\Raw\Disk.cs" />
+    <Compile Include="Core\Raw\DiskFactory.cs" />
+    <Compile Include="Core\Raw\DiskImageFile.cs" />
+    <Compile Include="Core\ReadOnlyDiscFileSystem.cs" />
+    <Compile Include="Core\ReparsePoint.cs" />
+    <Compile Include="Core\ReportLevels.cs" />
+    <Compile Include="Core\Setup\FileOpenEventArgs.cs" />
+    <Compile Include="Core\Setup\SetupHelper.cs" />
+    <Compile Include="Core\TimeConverter.cs" />
+    <Compile Include="Core\UnixFilePermissions.cs" />
+    <Compile Include="Core\UnixFileSystemInfo.cs" />
+    <Compile Include="Core\UnixFileType.cs" />
+    <Compile Include="Core\Vfs\IVfsDirectory.cs" />
+    <Compile Include="Core\Vfs\IVfsFile.cs" />
+    <Compile Include="Core\Vfs\IVfsFileWithStreams.cs" />
+    <Compile Include="Core\Vfs\IVfsSymlink.cs" />
+    <Compile Include="Core\Vfs\VfsContext.cs" />
+    <Compile Include="Core\Vfs\VfsDirEntry.cs" />
+    <Compile Include="Core\Vfs\VfsFileSystem.cs" />
+    <Compile Include="Core\Vfs\VfsFileSystemFacade.cs" />
+    <Compile Include="Core\Vfs\VfsFileSystemFactory.cs" />
+    <Compile Include="Core\Vfs\VfsFileSystemFactoryAttribute.cs" />
+    <Compile Include="Core\Vfs\VfsFileSystemInfo.cs" />
+    <Compile Include="Core\Vfs\VfsFileSystemOpener.cs" />
+    <Compile Include="Core\Vfs\VfsReadOnlyFileSystem.cs" />
+    <Compile Include="Core\VirtualDisk.cs" />
+    <Compile Include="Core\VirtualDiskClass.cs" />
+    <Compile Include="Core\VirtualDiskExtent.cs" />
+    <Compile Include="Core\VirtualDiskLayer.cs" />
+    <Compile Include="Core\VirtualDiskManager.cs" />
+    <Compile Include="Core\VirtualDiskParameters.cs" />
+    <Compile Include="Core\VirtualDiskTypeInfo.cs" />
+    <Compile Include="Core\VolumeInfo.cs" />
+    <Compile Include="Core\VolumeManager.cs" />
+    <Compile Include="Core\WindowsFileInformation.cs" />
     <Compile Include="ErrorHandler.cs" />
+    <Compile Include="ISO9660\BaseVolumeDescriptor.cs" />
+    <Compile Include="ISO9660\BootDeviceEmulation.cs" />
+    <Compile Include="ISO9660\BootInitialEntry.cs" />
+    <Compile Include="ISO9660\BootValidationEntry.cs" />
+    <Compile Include="ISO9660\BootVolumeDescriptor.cs" />
+    <Compile Include="ISO9660\BootVolumeDescriptorRegion.cs" />
+    <Compile Include="ISO9660\BuildDirectoryInfo.cs" />
+    <Compile Include="ISO9660\BuildDirectoryMember.cs" />
+    <Compile Include="ISO9660\BuildFileInfo.cs" />
+    <Compile Include="ISO9660\BuildParameters.cs" />
+    <Compile Include="ISO9660\CDBuilder.cs" />
+    <Compile Include="ISO9660\CDReader.cs" />
+    <Compile Include="ISO9660\CommonVolumeDescriptor.cs" />
+    <Compile Include="ISO9660\DirectoryExtent.cs" />
+    <Compile Include="ISO9660\DirectoryRecord.cs" />
+    <Compile Include="ISO9660\ExtentStream.cs" />
+    <Compile Include="ISO9660\File.cs" />
+    <Compile Include="ISO9660\FileExtent.cs" />
+    <Compile Include="ISO9660\FileFlags.cs" />
+    <Compile Include="ISO9660\Iso9660Variant.cs" />
+    <Compile Include="ISO9660\IsoContext.cs" />
+    <Compile Include="ISO9660\IsoUtilities.cs" />
+    <Compile Include="ISO9660\PathTable.cs" />
+    <Compile Include="ISO9660\PathTableRecord.cs" />
+    <Compile Include="ISO9660\PrimaryVolumeDescriptor.cs" />
+    <Compile Include="ISO9660\PrimaryVolumeDescriptorRegion.cs" />
+    <Compile Include="ISO9660\ReaderDirectory.cs" />
+    <Compile Include="ISO9660\ReaderDirEntry.cs" />
+    <Compile Include="ISO9660\RockRidge\ChildLinkSystemUseEntry.cs" />
+    <Compile Include="ISO9660\RockRidge\FileTimeSystemUseEntry.cs" />
+    <Compile Include="ISO9660\RockRidge\PosixFileInfoSystemUseEntry.cs" />
+    <Compile Include="ISO9660\RockRidge\PosixNameSystemUseEntry.cs" />
+    <Compile Include="ISO9660\RockRidge\RockRidgeExtension.cs" />
+    <Compile Include="ISO9660\SupplementaryVolumeDescriptor.cs" />
+    <Compile Include="ISO9660\SupplementaryVolumeDescriptorRegion.cs" />
+    <Compile Include="ISO9660\Susp\ContinuationSystemUseEntry.cs" />
+    <Compile Include="ISO9660\Susp\ExtensionSelectSystemUseEntry.cs" />
+    <Compile Include="ISO9660\Susp\ExtensionSystemUseEntry.cs" />
+    <Compile Include="ISO9660\Susp\GenericSuspExtension.cs" />
+    <Compile Include="ISO9660\Susp\GenericSystemUseEntry.cs" />
+    <Compile Include="ISO9660\Susp\PaddingSystemUseEntry.cs" />
+    <Compile Include="ISO9660\Susp\SharingProtocolSystemUseEntry.cs" />
+    <Compile Include="ISO9660\Susp\SuspExtension.cs" />
+    <Compile Include="ISO9660\Susp\SuspRecords.cs" />
+    <Compile Include="ISO9660\Susp\SystemUseEntry.cs" />
+    <Compile Include="ISO9660\VfsCDReader.cs" />
+    <Compile Include="ISO9660\VolumeDescriptorDiskRegion.cs" />
+    <Compile Include="ISO9660\VolumeDescriptorSetTerminator.cs" />
+    <Compile Include="ISO9660\VolumeDescriptorSetTerminatorRegion.cs" />
+    <Compile Include="ISO9660\VolumeDescriptorType.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="ProcessNameComparer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueryHandler.cs" />
+    <Compile Include="Streams\Block\Block.cs" />
+    <Compile Include="Streams\Block\BlockCache.cs" />
+    <Compile Include="Streams\Block\BlockCacheSettings.cs" />
+    <Compile Include="Streams\Block\BlockCacheStatistics.cs" />
+    <Compile Include="Streams\Block\BlockCacheStream.cs" />
+    <Compile Include="Streams\Buffer\Buffer.cs" />
+    <Compile Include="Streams\Buffer\BufferStream.cs" />
+    <Compile Include="Streams\Buffer\IBuffer.cs" />
+    <Compile Include="Streams\Buffer\IMappedBuffer.cs" />
+    <Compile Include="Streams\Buffer\SubBuffer.cs" />
+    <Compile Include="Streams\Builder\BuilderBufferExtent.cs" />
+    <Compile Include="Streams\Builder\BuilderBufferExtentSource.cs" />
+    <Compile Include="Streams\Builder\BuilderBytesExtent.cs" />
+    <Compile Include="Streams\Builder\BuilderExtent.cs" />
+    <Compile Include="Streams\Builder\BuilderExtentSource.cs" />
+    <Compile Include="Streams\Builder\BuilderSparseStreamExtent.cs" />
+    <Compile Include="Streams\Builder\BuilderStreamExtent.cs" />
+    <Compile Include="Streams\Builder\BuilderStreamExtentSource.cs" />
+    <Compile Include="Streams\Builder\PassthroughStreamBuilder.cs" />
+    <Compile Include="Streams\Builder\StreamBuilder.cs" />
+    <Compile Include="Streams\BuiltStream.cs" />
+    <Compile Include="Streams\IByteArraySerializable.cs" />
+    <Compile Include="Streams\MappedStream.cs" />
+    <Compile Include="Streams\PumpProgressEventArgs.cs" />
+    <Compile Include="Streams\ReaderWriter\BigEndianDataReader.cs" />
+    <Compile Include="Streams\ReaderWriter\BigEndianDataWriter.cs" />
+    <Compile Include="Streams\ReaderWriter\DataReader.cs" />
+    <Compile Include="Streams\ReaderWriter\DataWriter.cs" />
+    <Compile Include="Streams\ReaderWriter\LittleEndianDataReader.cs" />
+    <Compile Include="Streams\SparseMemoryBuffer.cs" />
+    <Compile Include="Streams\SparseMemoryStream.cs" />
+    <Compile Include="Streams\SparseStream.cs" />
+    <Compile Include="Streams\SparseStreamOpenDelegate.cs" />
+    <Compile Include="Streams\StreamBuffer.cs" />
+    <Compile Include="Streams\StreamExtent.cs" />
+    <Compile Include="Streams\StreamPump.cs" />
+    <Compile Include="Streams\SubStream.cs" />
+    <Compile Include="Streams\Utils\EndianUtilities.cs" />
+    <Compile Include="Streams\Utils\MathUtilities.cs" />
+    <Compile Include="Streams\Utils\Numbers.cs" />
+    <Compile Include="Streams\Utils\Ownership.cs" />
+    <Compile Include="Streams\Utils\Sizes.cs" />
+    <Compile Include="Streams\Utils\Range.cs" />
+    <Compile Include="Streams\Utils\StreamUtilities.cs" />
+    <Compile Include="Streams\WrappingMappedStream.cs" />
+    <Compile Include="Streams\ZeroStream.cs" />
     <Compile Include="Tools.cs" />
+    <Compile Include="Uninstaller.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="app.manifest" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

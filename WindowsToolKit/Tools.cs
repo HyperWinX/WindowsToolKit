@@ -8,11 +8,22 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
+using System.Threading;
+using WindowsToolKit.ISO9660;
 
 namespace WindowsToolKit
 {
     internal static class Tools
     {
+        internal enum VHDSubSystemModes
+        {
+            None,
+            ISO,
+            VHD,
+            VHDX,
+            WIM,
+            FLP
+        }
         #region
         [Flags]
         public enum ThreadAccess : int
@@ -83,6 +94,7 @@ namespace WindowsToolKit
             foreach (FileInfo file in files)
             {
                 SystemSetFileOwnership(file.FullName);
+
                 Console.WriteLine(file.Name);
                 file.Delete();
                 ClearLastLine();
@@ -118,13 +130,13 @@ namespace WindowsToolKit
             Process.Start(startInfo);
             try
             {
-                File.Delete(path);
+                System.IO.File.Delete(path);
             }
             catch (Exception ex)
             {
                 ErrorHandler.HandleError(ex);
             }
-            if (File.Exists(path))
+            if (System.IO.File.Exists(path))
                 return false;
             return true;
         }
@@ -537,7 +549,7 @@ namespace WindowsToolKit
                 }
             }
             Console.WriteLine("Writing logs...");
-            File.WriteAllLines("log.log", log);
+            System.IO.File.WriteAllLines("log.log", log);
             Log.Success($"Hard service optimization completed. Reboot recomended.");
         }
         internal static List<ServiceController> GetServiceList()
@@ -1032,7 +1044,8 @@ namespace WindowsToolKit
                         try
                         {
                             pid = Convert.ToInt32(queryArray[1]);
-                        } catch
+                        }
+                        catch
                         {
                             Log.Error("Cannot find process by id");
                             break;
@@ -1096,7 +1109,7 @@ namespace WindowsToolKit
                         try
                         {
                             NtSetInformationProcess(Process.GetProcessById(Convert.ToInt32(queryArray[1])).Handle, BreakOnTermination, ref IsCritical, sizeof(int));
-                        } 
+                        }
                         catch (Exception ex)
                         {
                             ErrorHandler.HandleError(ex);
@@ -1150,12 +1163,14 @@ namespace WindowsToolKit
                                 try
                                 {
                                     tt();
-                                } catch
+                                }
+                                catch
                                 {
                                     Console.WriteLine("Cannot get property: no access");
                                 }
                             }
-                        } catch (Exception ex)
+                        }
+                        catch (Exception ex)
                         {
                             ErrorHandler.HandleError(ex);
                         }
@@ -1186,10 +1201,10 @@ namespace WindowsToolKit
                         catch (Exception ex)
                         {
                             ErrorHandler.HandleError(ex);
-                        }  
+                        }
                         break;
                     case "resume":
-                        if (queryArray.Length < 2 )
+                        if (queryArray.Length < 2)
                         {
                             Log.Warning("Not enough arguments given.");
                             break;
@@ -1265,8 +1280,8 @@ namespace WindowsToolKit
                             try
                             {
                                 reg = currentTree.OpenSubKey(currentRegPath, true);
-                            } 
-                            catch(Exception ex)
+                            }
+                            catch (Exception ex)
                             {
                                 ErrorHandler.HandleError(ex);
                                 break;
@@ -1460,7 +1475,8 @@ namespace WindowsToolKit
                             try
                             {
                                 key2 = currentTree.OpenSubKey(currentRegPath, true);
-                            } catch(Exception ex)
+                            }
+                            catch (Exception ex)
                             {
                                 ErrorHandler.HandleError(ex);
                                 break;
@@ -1481,6 +1497,99 @@ namespace WindowsToolKit
                         return;
                 }
             }
+        }
+        internal static void VirtualDiskControl()
+        {
+            Console.Clear();
+            bool work = true;
+            VHDSubSystemModes curMode = VHDSubSystemModes.None;
+            while (work)
+            {
+                Console.Write("(VHD_CONTROL) >>> ");
+                string query = Console.ReadLine();
+                string[] splittedQuery = query.Split(' ');
+                switch (splittedQuery[0])
+                {
+                    case "help":
+                        Console.WriteLine("mode <mode_name> - select virtual disk type to work with");
+                        break;
+                    case "mode":
+                        if (splittedQuery.Length < 2)
+                        {
+                            Console.WriteLine("Current mode is " + curMode.ToString());
+                            break;
+                        }
+                        if (splittedQuery[1].ToLower() == "help")
+                        {
+                            Console.WriteLine("wim - work with wim images");
+                            Console.WriteLine("iso - work with iso images");
+                            break;
+                        }
+                        switch (splittedQuery[1].ToLower())
+                        {
+                            case "iso":
+                                curMode = VHDSubSystemModes.ISO;
+                                break;
+                            case "wim":
+                                curMode = VHDSubSystemModes.WIM;
+                                break;
+                        }
+                        break;
+                    case "test":
+                        VHDBuilder(curMode);
+                        break;
+                }
+            }
+        }
+        internal static void VHDBuilder(VHDSubSystemModes mode)
+        {
+            Console.Clear();
+            CDBuilder builder = new CDBuilder();
+            Console.Write("Enter path for ISO saving: ");
+            string path = Console.ReadLine();
+            Console.Write("Use Joliet (true/false): ");
+            bool useJoliet = false;
+            bool valSaved = false;
+            while (!valSaved)
+            {
+                if (!bool.TryParse(Console.ReadLine(), out useJoliet))
+                {
+                    ClearLastLine();
+                    Log.Error("Cannot parse value");
+                    Thread.Sleep(2000);
+                    ClearLastLine();
+                    Console.Write("Use Joliet (true/false): ");
+                }
+                else
+                {
+                    valSaved = true;
+                }
+            }
+            builder.UseJoliet = useJoliet;
+            Console.Write("Select drive label: ");
+            string driveLabel;
+            driveLabel = Console.ReadLine();
+            builder.VolumeIdentifier = driveLabel;
+            string obj = "";
+            Console.WriteLine("Now you can add files and folders to ISO image. Enter \"continue\" to build the ISO.");
+            while (obj != "continue")
+            {
+                Console.Write(">>> ");
+                obj = Console.ReadLine();
+                if (Directory.Exists(obj))
+                    builder.AddDirectory(obj);
+                else if (System.IO.File.Exists(obj))
+                    builder.AddFile(obj, System.IO.File.ReadAllBytes(obj));
+                else
+                    Log.Error("Cannot define object type");
+            }
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+            Stream stream = System.IO.File.Open(path, FileMode.OpenOrCreate);
+            Console.WriteLine("Building...");
+            builder.Build(stream);
+            Log.Success("Build successfully finished");
+            return;
         }
         internal static bool BackupMBR(int physicalDriveNumber, string filePath)
         {
@@ -1506,8 +1615,8 @@ namespace WindowsToolKit
             else
             {
                 handle.Close();
-                File.Create(filePath).Close();
-                File.WriteAllBytes(filePath, mbr);
+                System.IO.File.Create(filePath).Close();
+                System.IO.File.WriteAllBytes(filePath, mbr);
                 return true;
             }
         }
@@ -1525,7 +1634,7 @@ namespace WindowsToolKit
                 return false;
             long byteOffset = 0;
             SetFilePointerEx(handle, byteOffset, out _, SeekOrigin.Begin);
-            byte[] mbr = File.ReadAllBytes(filePath);
+            byte[] mbr = System.IO.File.ReadAllBytes(filePath);
             if (!WriteFile(handle, mbr, mbr.Length, out _, IntPtr.Zero))
             {
                 handle.Close();

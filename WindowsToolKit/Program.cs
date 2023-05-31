@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Diagnostics;
-using System.IO;
+using System.Linq;
 
 namespace WindowsToolKit
 {
@@ -29,7 +28,7 @@ namespace WindowsToolKit
                 if (!helpExited)
                 {
                     helpExited = true;
-                } 
+                }
                 else
                 {
                     Console.Write($"({currentMode}) >>> ");
