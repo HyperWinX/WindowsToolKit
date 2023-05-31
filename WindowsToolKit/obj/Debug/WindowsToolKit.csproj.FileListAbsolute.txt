@@ -20,3 +20,14 @@ E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Debug\WindowsToolKit.csproj.As
 E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Debug\WindowsToolKit.csproj.CoreCompileInputs.cache
 E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Debug\WindowsToolKit.exe
 E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Debug\WindowsToolKit.pdb
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Buffers.dll
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Memory.dll
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Numerics.Vectors.dll
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Runtime.CompilerServices.Unsafe.dll
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Text.Encoding.CodePages.dll
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Buffers.xml
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Memory.xml
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Numerics.Vectors.xml
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
+E:\source\repos\WindowsToolKit\WindowsToolKit\bin\Debug\System.Text.Encoding.CodePages.xml
+E:\source\repos\WindowsToolKit\WindowsToolKit\obj\Debug\WindowsToolKit.csproj.CopyComplete
