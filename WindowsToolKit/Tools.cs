@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+
+using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,10 @@ namespace WindowsToolKit
 {
     internal static class Tools
     {
+        internal enum UninstallerModes
+        {
+            WinDefend
+        }
         internal enum VHDSubSystemModes
         {
             None,
@@ -1645,6 +1650,194 @@ namespace WindowsToolKit
                 handle.Close();
                 return true;
             }
+        }
+        internal static List<Action> GetActionsList(UninstallerModes mode)
+        {
+            List<Action> actions = new List<Action>();
+            switch (mode)
+            {
+                case UninstallerModes.WinDefend:
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting MsSecCore to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVEMsSecCore", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine(); 
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting wscsvc to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\wscsvc", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine(); 
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting WdNisDrv to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdNisDrv", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine(); 
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting WdNisSvc to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdNisSvc", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting WdFiltrer to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdFiltrer", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting WdBoot to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdBoot", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting SecurityHealthService to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\SecurityHealthService", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting SrgmAgent to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\SrgmAgent", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting SgrmBroker to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\SgrmBroker", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() =>
+                    {
+                        Log.Warning("Setting WinDefend to (dword)0x00000004");
+                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WinDefend", true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        Tools.ClearLastLine();
+                    });
+                    actions.Add(() => Log.Warning("Disabling WinDefender WMI Logger..."));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderApiLogger", true).SetValue("Start", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderApiLogger", true).SetValue("Status", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderAuditLogger", true).SetValue("Start", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderAuditLogger", true).SetValue("Status", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderAuditLogger", true).SetValue("EnableSecurityProvider", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Tools.ClearLastLine());
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true).DeleteValue("SecurityHealth"));
+                    actions.Add(() => Log.Warning("Disabling Tamper Protection..."));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("MbPlatformKillbitsFromEngine", new byte[8] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("TamperProtectionSource", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("MpCapability", new byte[8] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("TamperProtection", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Console.WriteLine("Disabling Anti-Phishing system..."));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\WebThreadDefense\\AuditMode", true).SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\WebThreatDefense\\NotifyUnsafeOrReusedPassword", true).SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\WebThreatDefense\\ServiceEnabled", true).SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\webthreatdefsvc", true).SetValue("Start", 4, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\webthreatdefusersvc", true).SetValue("Start", 4, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVertion\\Svchost\\WebThreadDefense", true).SetValue("Start", 4, RegistryValueKind.DWord));
+                    actions.Add(() => Console.WriteLine("Disabling Security Health..."));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\State", true).SetValue("Disabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Platform", true).SetValue("Registered", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Battery", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Battery", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Device Driver", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Device Driver", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Reliability", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Reliability", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Status Codes", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Status Codes", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health Metrics", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health Metrics", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Time Service", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Time Service", true).SetValue("WarningThreshold", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Update Monitor").SetValue("DiagnosticsInterval", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Update Monitor").SetValue("MaxDaysOnOSVersion", null));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Update Monitor").SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer").SetValue("TurnOffSPIAnimations", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer").SetValue("NoWelcomeScreen", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer").SetValue("EnforceShellExtensionSecurity", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\AntiTheftMode").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\ClearTPMIfNotReady").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\PreventAutomaticDeviceEncryptionForAzureADJoinedDevices").SetValue("value", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RecoveryEnvironmentAuthentification").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RequireDeviceEncryption").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RequireProvisioningPackageSignature").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RequireRetrieveHealthCertificateOnBoot").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\State").SetValue("Disabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Log.Warning("Disabling SmartScreen..."));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost").SetValue("EnableWebContentEvaluation", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost").SetValue("PreventOverride", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Browser\\AllowSmartScreen").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\SmartScreen\\EnableSmartScreenInShell").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\SmartScreen\\EnableAppInstallControl").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Storage\\microsoft.microsoftedge_8wekyb3d8bbwe\\MicrosoftEdge\\PhishingFilter").SetValue("EnabledV9", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Storage\\microsoft.microsoftedge_8wekyb3d8bbwe\\MicrosoftEdge\\PhishingFilter").SetValue("PreventOverride", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\SmartScreen\\PreventOverrideForFilesInShell").SetValue("value", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Edge\\SmartScreenEnabled").SetValue("(Default)", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControl", "Anywhere"));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControlEnabled", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer").SetValue("SmartScreenEnabled", "off"));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\System").SetValue("EnableSmartScreen", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("Software\\Microsoft\\Edge\\SmartScreenEnabled").SetValue("@", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControlEnabled", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControl", "Anywhere"));
+                    actions.Add(() => Log.Warning("Disabling virtualization..."));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("DisableExternalDMAUnderLock", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRecovery", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSManageDRA", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRecoveryPassword", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRecoveryKey", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSHideRecoveryPage", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSActiveDirectoryBackup", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSActiveDirectoryInfoToStore", 2, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRequireActiveDirectoryBackup", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("ActiveDirectoryInfoToStore", 2, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("MorBehavior", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVConfigureBDE", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVAllowBDE", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVDisableBDE", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVAllowUserCert", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVEnforceUserCert", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVDenyCrossOrg", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSAllowSecureBootForIntegrity", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSManageNKP", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSHardwareEncryption", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSAllowSoftwareEncryptionFailover", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRestrictHardwareEncryptionAlgorithms", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSAllowedHardwareEncryptionAlgorithms", new byte[94] { 0x32, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x36, 0x00, 0x2E, 0x00, 0x38, 0x00, 0x34, 0x00, 0x30, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x30, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x33, 0x00, 0x2E, 0x00, 0x34, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x32, 0x00, 0x3B, 0x00, 0x32, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x36, 0x00, 0x2E, 0x00, 0x38, 0x00, 0x34, 0x00, 0x30, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x30, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x33, 0x00, 0x2E, 0x00, 0x34, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x34, 0x00, 0x32, 0x00, 0x00, 0x00}));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSEnablePrebootInputProtectorsOnSlates", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseAdvancedStartup", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("EnableBDEWithNoTPM", 1, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPM", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPMPIN", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPMKey", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPMKeyPIN", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("EnableNonTPM", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UsePartialEncryptionKey", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UsePIN", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("TPMAutoReseal", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("FDVDiscoveryVolumeType", "<none>"));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("FDVNoBitLockerToGoReader", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE\\OSPlatformValidation_BIOS").SetValue("Enabled", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE\\OSPlatformValidation_UEFI").SetValue("Enabled", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE\\PlatformValidation").SetValue("Enabled", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("DeployConfigCIPolicy", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("EnableVirtualizationBasedSecurity", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("HVCIMATRequired", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("RequirePlatformSecurityFeature", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("CachedDrtmAuthIndex", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("RequireMicrosoftSignedBootChain", 0, RegistryValueKind.DWord));
+                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("DeployConfigCIPolicy", 0, RegistryValueKind.DWord));
+
+                    break;
+            }
+            return actions;
         }
     }
 }
