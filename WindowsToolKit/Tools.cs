@@ -3,9 +3,12 @@ using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
@@ -16,10 +19,10 @@ namespace WindowsToolKit
 {
     internal static class Tools
     {
-        internal enum UninstallerModes
-        {
-            WinDefend
-        }
+        internal static long KB = 1024;
+        internal static long MB = 1048576;
+        internal static long GB = 1073741824;
+        internal static long TB = GB * 1024;
         internal enum VHDSubSystemModes
         {
             None,
@@ -85,6 +88,8 @@ namespace WindowsToolKit
             int nNumberOfBytesToWrite,
             out int lpNumberOfBytesWritten,
             IntPtr lpOverlapped);
+        [DllImport("kernel32.dll")]
+        public static extern bool DeleteVolumeMountPoint(string lpszVolumeMountPoint);
         #endregion
         internal static void RecursiveDelete(DirectoryInfo baseDir)
         {
@@ -992,7 +997,7 @@ namespace WindowsToolKit
         }
         internal static void ProcessControl()
         {
-            Console.WriteLine("Service control subsystem.");
+            Console.WriteLine("Process control subsystem.");
             bool work = true;
             while (work)
             {
@@ -1543,6 +1548,231 @@ namespace WindowsToolKit
                     case "test":
                         VHDBuilder(curMode);
                         break;
+                    case "read":
+                        CDReader reader = new CDReader(System.IO.File.Open("C:\\test.iso", FileMode.Open), true);
+                        foreach (var file in reader.GetFiles("test"))
+                            Console.WriteLine(file);
+                        break;
+                }
+            }
+        }
+        internal static void FileManager()
+        {
+            Console.Clear();
+            Console.WriteLine("WTK File Manager\n");
+            while (true)
+            {
+                Console.Write(Program.currentPath + ">");
+                string query = Console.ReadLine();
+                string[] splittedQuery = query.Split(' ');
+                switch (splittedQuery[0])
+                {
+                    case "cd":
+                        if (splittedQuery.Length < 2)
+                        {
+                            Log.Error("Not enough arguments!");
+                            break;
+                        }
+                        if (splittedQuery[1] == "..")
+                        {
+                            Program.currentPath = new DirectoryInfo(Program.currentPath).Parent.FullName;
+                            Console.Write("\n");
+                            break;
+                        }
+                        if (query.Contains("\""))
+                        {
+                            string clonedquery = query;
+                            int startindex = clonedquery.IndexOf('"');
+                            clonedquery = clonedquery.Remove(startindex, 1);
+                            int endindex = clonedquery.IndexOf('"');
+                            clonedquery = clonedquery.Remove(endindex, 1);
+                            if (clonedquery.Contains('"'))
+                            {
+                                Log.Error("Invalid path!");
+                                break;
+                            }
+                            string path = clonedquery.Substring(startindex, endindex - startindex);
+                            if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path))
+                            {
+                                if (Path.IsPathRooted(path))
+                                {
+                                    Program.currentPath = path;
+                                    break;
+                                }
+                            }
+                            string[] subpaths = null;
+                            if (path.Contains("\\"))
+                            {
+                                subpaths = path.Split('\\');
+                                if (subpaths.Length < 1)
+                                {
+                                    Log.Error("Invalid path!");
+                                    break;
+                                }
+                                foreach (string subpath in subpaths)
+                                {
+                                    if (Directory.Exists(Program.currentPath + "\\" + subpath))
+                                        Program.currentPath = Program.currentPath + "\\" + subpath;
+                                    else
+                                    {
+                                        Log.Error("Directory " + subpath + "does not exist");
+                                        break;
+                                    }
+                                }
+                                Console.Write("\n");
+                            }
+                            else
+                            {
+                                if (!Directory.Exists(Program.currentPath + "\\" + path))
+                                {
+                                    Log.Error("Invalid path!");
+                                    break;
+                                }
+                                Program.currentPath = Program.currentPath + "\\" + path;
+                            }
+                        }
+                        else
+                        {
+                            if (!Directory.Exists(Program.currentPath + "\\" + splittedQuery[1]))
+                            {
+                                Log.Error("Invalid path!");
+                                break;
+                            }
+                            Program.currentPath = Program.currentPath + "\\" + splittedQuery[1];
+                            Console.Write("\n");
+                        }
+                        break;
+                    case "info":
+                        if (splittedQuery.Length < 2)
+                        {
+                            Log.Error("Got less than two arguments.");
+                            return;
+                        }
+                        string cquery = splittedQuery[1];
+                        if (splittedQuery[1].Contains("\""))
+                        {
+                            string ccquery = query;
+                            int findex = ccquery.IndexOf('"');
+                            ccquery = ccquery.Remove(findex, 1);
+                            int lindex = ccquery.IndexOf('"');
+                            ccquery = ccquery.Remove(lindex, 1);
+                            cquery = ccquery.Substring(findex, lindex - findex);
+                            while (cquery.Contains("\""))
+                                cquery = cquery.Remove(cquery.IndexOf('"'), 1);
+                            string testpath = "";
+                            if (!Path.IsPathRooted(cquery))
+                            {
+                                testpath = Program.currentPath + "\\" + cquery;
+                                if (!System.IO.File.Exists(testpath) && !Directory.Exists(testpath))
+                                {
+                                    Log.Error("Cannot find file!");
+                                    return;
+                                }
+                                else
+                                    cquery = testpath;
+                            }
+                        }
+                        else
+                            if (!Path.IsPathRooted(cquery))
+                                cquery = Program.currentPath + "\\" + cquery;
+                        if (System.IO.File.Exists(cquery) && !Directory.Exists(cquery))
+                        {
+                            FileInfo fi = new FileInfo(cquery);
+                            Console.WriteLine("Info about file " + fi.Name + "\n");
+                            Console.WriteLine("Attributes: " + fi.Attributes.ToString());
+                            Console.WriteLine("Creation time: " + fi.CreationTime.ToString());
+                            Console.WriteLine("Extension: " + fi.Extension);
+                            Console.WriteLine("Full path: " + fi.FullName);
+                            Console.WriteLine("Is ReadOnly: " + fi.IsReadOnly.ToString());
+                            Console.WriteLine("Last access time: " + fi.LastAccessTime.ToString());
+                            Console.WriteLine("Last write time: " + fi.LastWriteTime.ToString());
+                            if (fi.Length < Tools.KB)
+                                Console.WriteLine("File size: " + fi.Length + " B\n");
+                            else if (fi.Length < Tools.MB)
+                                Console.WriteLine("File size: " + (int)(fi.Length) + " KB\n");
+                            else if (fi.Length < Tools.GB)
+                                Console.WriteLine("File size: " + (fi.Length / Tools.MB) + "." + (fi.Length / Tools.KB).ToString().Substring((int)(fi.Length / Tools.MB).ToString().Length, 1) + " MB\n");
+                            else if (fi.Length < Tools.TB)
+                                Console.WriteLine("File size: " + (fi.Length / Tools.GB) + "." + (fi.Length / Tools.MB).ToString().Substring((int)(fi.Length / Tools.GB).ToString().Length, 1) + " GB\n");
+                        }
+                        else if (!System.IO.File.Exists(cquery) && Directory.Exists(cquery))
+                        {
+                            DirectoryInfo di = new DirectoryInfo(cquery);
+                            Console.WriteLine("Info about " + cquery + "\n");
+                            Console.WriteLine("Attributes: " + di.Attributes.ToString());
+                            Console.WriteLine("Creation time: " + di.CreationTime.ToString());
+                            Console.WriteLine("Full path: " + di.FullName);
+                            Console.WriteLine("Last access time: " + di.LastAccessTime.ToString());
+                            Console.WriteLine("Last write time: " + di.LastWriteTime.ToString() + "\n");
+                        }
+                        else
+                        {
+                            Log.Error("Cannot find file or folder");
+                        }
+                        break;
+                    case "dir":
+                        long totalBytes = 0;
+                        int totalFiles = 0;
+                        int totalFolders = 0;
+                        List<string> strings = new List<string>();
+                        foreach (var file in Directory.GetFiles(Program.currentPath))
+                        {
+                            FileInfo fi = new FileInfo(file);
+                            totalBytes += fi.Length;
+                            totalFiles++;
+                            strings.Add($"{fi.CreationTime.Date.ToString().Substring(0, 10)}  {fi.CreationTime.TimeOfDay.ToString().Substring(0, 8)}                   {fi.Name}");
+                        }
+                        foreach (var directory in Directory.GetDirectories(Program.currentPath))
+                        {
+                            DirectoryInfo di = new DirectoryInfo(directory);
+                            totalFolders++;
+                            strings.Add($"{di.CreationTime.Date.ToString().Substring(0, 10)}  {di.CreationTime.TimeOfDay.ToString().Substring(0, 8)}    <DIR>          {di.Name}");
+                        }
+                        Console.Write("\n");
+                        foreach (var line in strings)
+                        {
+                            Console.WriteLine(line);
+                        }
+                        Console.WriteLine(new string(' ', 16 - totalFiles.ToString().Length) + totalFiles + " files, " + totalBytes + " bytes");
+                        Console.WriteLine(new string(' ', 16 - totalFolders.ToString().Length) + totalFolders + " folders\n");
+                        break;
+                    case "delete":
+                        if (Program.request.Count < 2)
+                        {
+                            Log.Warning("Not enough arguments given.");
+                            return;
+                        }
+                        for (int i = 0; i < Program.request.Count; i++)
+                        {
+                            Program.request[i] = Program.request[i].Trim('"');
+                        }
+                        if (System.IO.File.Exists(Program.request[1]))
+                        {
+                            if (!Tools.TryToRemoveFile(Program.request[1]))
+                                Log.Error("Cannot remove file.");
+                            else
+                                Log.Success("Remove successful.");
+                        }
+                        else
+                        {
+                            bool needToRemove;
+                            if (!Directory.Exists(Program.request[1]))
+                            {
+                                Log.Error("Object does not exist");
+                                needToRemove = false;
+                                return;
+                            }
+                            else { needToRemove = true; }
+                            if (needToRemove)
+                            {
+                                if (!Tools.TryToRemoveDirectory(Program.request[1]))
+                                    Log.Error("Cannot remove directory.");
+                                else
+                                if (!Directory.Exists(Program.request[1]))
+                                    Log.Success("Remove successful.");
+                            }
+                        }
+                        break;
                 }
             }
         }
@@ -1554,22 +1784,8 @@ namespace WindowsToolKit
             string path = Console.ReadLine();
             Console.Write("Use Joliet (true/false): ");
             bool useJoliet = false;
-            bool valSaved = false;
-            while (!valSaved)
-            {
-                if (!bool.TryParse(Console.ReadLine(), out useJoliet))
-                {
-                    ClearLastLine();
-                    Log.Error("Cannot parse value");
-                    Thread.Sleep(2000);
-                    ClearLastLine();
-                    Console.Write("Use Joliet (true/false): ");
-                }
-                else
-                {
-                    valSaved = true;
-                }
-            }
+            while (!bool.TryParse(Console.ReadLine(), out useJoliet))
+                Console.Write("Use Joliet (true/false): ");
             builder.UseJoliet = useJoliet;
             Console.Write("Select drive label: ");
             string driveLabel;
@@ -1593,10 +1809,28 @@ namespace WindowsToolKit
             Stream stream = System.IO.File.Open(path, FileMode.OpenOrCreate);
             Console.WriteLine("Building...");
             builder.Build(stream);
+            stream.Close();
             Log.Success("Build successfully finished");
             return;
         }
-        internal static bool BackupMBR(int physicalDriveNumber, string filePath)
+        internal static void WriteManifestResource(string manifestResourceName, string targetFilePath)
+        {
+            Assembly asm = Assembly.GetExecutingAssembly();
+            var stream = asm.GetManifestResourceStream("WindowsToolKit.AdditionalFiles." + manifestResourceName);
+            var targetStream = System.IO.File.Open(targetFilePath, FileMode.Create);
+            var br = new BinaryReader(stream);
+            var bw = new BinaryWriter(targetStream);
+            long offset = 0;
+            while (stream.Length - offset > 1024)
+            {
+                bw.Write(br.ReadBytes(1024));
+                offset += 1024;
+            }
+            bw.Write(br.ReadBytes((int)(stream.Length - offset)));
+            bw.Dispose(); bw.Close();
+            br.Dispose(); br.Close();
+        }
+        internal static bool BackupMBR(int physicalDriveNumber, string filePath, int byteCount)
         {
             SafeFileHandle handle = CreateFile(
                 $@"\\.\PhysicalDrive{physicalDriveNumber}",
@@ -1610,7 +1844,7 @@ namespace WindowsToolKit
                 return false;
             long byteOffset = 0;
             SetFilePointerEx(handle, byteOffset, out _, SeekOrigin.Begin);
-            byte[] mbr = new byte[512];
+            byte[] mbr = new byte[byteCount];
             int bytesRead = 0;
             if (!ReadFile(handle, mbr, mbr.Length, out bytesRead, IntPtr.Zero))
             {
@@ -1651,193 +1885,115 @@ namespace WindowsToolKit
                 return true;
             }
         }
-        internal static List<Action> GetActionsList(UninstallerModes mode)
+        internal static void SVCBackup(string targetFilename)
         {
-            List<Action> actions = new List<Action>();
-            switch (mode)
+            ServiceController[] services = ServiceController.GetServices();
+            StreamWriter writer;
+            try
             {
-                case UninstallerModes.WinDefend:
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting MsSecCore to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVEMsSecCore", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine(); 
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting wscsvc to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\wscsvc", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine(); 
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting WdNisDrv to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdNisDrv", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine(); 
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting WdNisSvc to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdNisSvc", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting WdFiltrer to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdFiltrer", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting WdBoot to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WdBoot", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting SecurityHealthService to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\SecurityHealthService", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting SrgmAgent to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\SrgmAgent", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting SgrmBroker to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\SgrmBroker", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() =>
-                    {
-                        Log.Warning("Setting WinDefend to (dword)0x00000004");
-                        Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\WinDefend", true).SetValue("Start", 4, RegistryValueKind.DWord);
-                        Tools.ClearLastLine();
-                    });
-                    actions.Add(() => Log.Warning("Disabling WinDefender WMI Logger..."));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderApiLogger", true).SetValue("Start", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderApiLogger", true).SetValue("Status", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderAuditLogger", true).SetValue("Start", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderAuditLogger", true).SetValue("Status", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\DefenderAuditLogger", true).SetValue("EnableSecurityProvider", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Tools.ClearLastLine());
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true).DeleteValue("SecurityHealth"));
-                    actions.Add(() => Log.Warning("Disabling Tamper Protection..."));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("MbPlatformKillbitsFromEngine", new byte[8] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("TamperProtectionSource", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("MpCapability", new byte[8] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Defender\\Features", true).SetValue("TamperProtection", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Console.WriteLine("Disabling Anti-Phishing system..."));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\WebThreadDefense\\AuditMode", true).SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\WebThreatDefense\\NotifyUnsafeOrReusedPassword", true).SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\WebThreatDefense\\ServiceEnabled", true).SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\webthreatdefsvc", true).SetValue("Start", 4, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\webthreatdefusersvc", true).SetValue("Start", 4, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SYSTEM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVertion\\Svchost\\WebThreadDefense", true).SetValue("Start", 4, RegistryValueKind.DWord));
-                    actions.Add(() => Console.WriteLine("Disabling Security Health..."));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\State", true).SetValue("Disabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Platform", true).SetValue("Registered", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Battery", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Battery", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Device Driver", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Device Driver", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Reliability", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Reliability", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Status Codes", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Status Codes", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health Metrics", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Storage Health Metrics", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Time Service", true).SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Health Advisor\\Time Service", true).SetValue("WarningThreshold", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Update Monitor").SetValue("DiagnosticsInterval", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Update Monitor").SetValue("MaxDaysOnOSVersion", null));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\Update Monitor").SetValue("UIReportingDisabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer").SetValue("TurnOffSPIAnimations", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer").SetValue("NoWelcomeScreen", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer").SetValue("EnforceShellExtensionSecurity", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\AntiTheftMode").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\ClearTPMIfNotReady").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\PreventAutomaticDeviceEncryptionForAzureADJoinedDevices").SetValue("value", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RecoveryEnvironmentAuthentification").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RequireDeviceEncryption").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RequireProvisioningPackageSignature").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Security\\RequireRetrieveHealthCertificateOnBoot").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows Security Health\\State").SetValue("Disabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Log.Warning("Disabling SmartScreen..."));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost").SetValue("EnableWebContentEvaluation", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost").SetValue("PreventOverride", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\Browser\\AllowSmartScreen").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\SmartScreen\\EnableSmartScreenInShell").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\SmartScreen\\EnableAppInstallControl").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Storage\\microsoft.microsoftedge_8wekyb3d8bbwe\\MicrosoftEdge\\PhishingFilter").SetValue("EnabledV9", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Storage\\microsoft.microsoftedge_8wekyb3d8bbwe\\MicrosoftEdge\\PhishingFilter").SetValue("PreventOverride", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\PolicyManager\\default\\SmartScreen\\PreventOverrideForFilesInShell").SetValue("value", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Edge\\SmartScreenEnabled").SetValue("(Default)", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControl", "Anywhere"));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControlEnabled", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer").SetValue("SmartScreenEnabled", "off"));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\System").SetValue("EnableSmartScreen", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("Software\\Microsoft\\Edge\\SmartScreenEnabled").SetValue("@", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControlEnabled", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen").SetValue("ConfigureAppInstallControl", "Anywhere"));
-                    actions.Add(() => Log.Warning("Disabling virtualization..."));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("DisableExternalDMAUnderLock", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRecovery", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSManageDRA", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRecoveryPassword", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRecoveryKey", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSHideRecoveryPage", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSActiveDirectoryBackup", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSActiveDirectoryInfoToStore", 2, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRequireActiveDirectoryBackup", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("ActiveDirectoryInfoToStore", 2, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("MorBehavior", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVConfigureBDE", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVAllowBDE", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVDisableBDE", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVAllowUserCert", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVEnforceUserCert", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("RDVDenyCrossOrg", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSAllowSecureBootForIntegrity", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSManageNKP", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSHardwareEncryption", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSAllowSoftwareEncryptionFailover", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSRestrictHardwareEncryptionAlgorithms", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSAllowedHardwareEncryptionAlgorithms", new byte[94] { 0x32, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x36, 0x00, 0x2E, 0x00, 0x38, 0x00, 0x34, 0x00, 0x30, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x30, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x33, 0x00, 0x2E, 0x00, 0x34, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x32, 0x00, 0x3B, 0x00, 0x32, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x36, 0x00, 0x2E, 0x00, 0x38, 0x00, 0x34, 0x00, 0x30, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x30, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x33, 0x00, 0x2E, 0x00, 0x34, 0x00, 0x2E, 0x00, 0x31, 0x00, 0x2E, 0x00, 0x34, 0x00, 0x32, 0x00, 0x00, 0x00}));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("OSEnablePrebootInputProtectorsOnSlates", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseAdvancedStartup", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("EnableBDEWithNoTPM", 1, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPM", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPMPIN", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPMKey", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UseTPMKeyPIN", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("EnableNonTPM", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UsePartialEncryptionKey", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("UsePIN", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("TPMAutoReseal", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("FDVDiscoveryVolumeType", "<none>"));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE").SetValue("FDVNoBitLockerToGoReader", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE\\OSPlatformValidation_BIOS").SetValue("Enabled", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE\\OSPlatformValidation_UEFI").SetValue("Enabled", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\FVE\\PlatformValidation").SetValue("Enabled", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("DeployConfigCIPolicy", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("EnableVirtualizationBasedSecurity", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("HVCIMATRequired", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("RequirePlatformSecurityFeature", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("CachedDrtmAuthIndex", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("RequireMicrosoftSignedBootChain", 0, RegistryValueKind.DWord));
-                    actions.Add(() => Registry.LocalMachine.OpenSubKey("SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard").SetValue("DeployConfigCIPolicy", 0, RegistryValueKind.DWord));
-
-                    break;
+                writer = new StreamWriter(System.IO.File.Open(targetFilename, FileMode.OpenOrCreate));
             }
-            return actions;
+            catch
+            {
+                Log.Error("Cannot open file");
+                return;
+            }
+            foreach (ServiceController service in services)
+            {
+                writer.WriteLine(service.DisplayName);
+                writer.WriteLine($"{service.StartType.ToString()} {service.Status.ToString()} {service.ServiceName}");
+            }
+            if (System.IO.File.Exists(targetFilename))
+                Log.Success("Backup successfully completed");
+            writer.Dispose();
+            services = null;
+        }
+        internal static void SVCRestore(string targetFilename)
+        {
+
+        }
+        internal static ManagementObject[] GetPartitions(string driveLetter)
+        {
+            ObjectQuery query = new ObjectQuery("ASSOCIATORS OF {Win32_LogicalDisk.DeviceID='" + driveLetter + "'} WHERE AssocClass = Win32_LogicalDiskToPartition");
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
+            return searcher.Get().OfType<ManagementObject>().ToArray();
+        }
+        internal static void EjectPartition(ManagementObject partition)
+        {
+            ObjectQuery query = new ObjectQuery("ASSOCIATORS OF {Win32_DiskPartition.DeviceID='" + partition["DeviceID"] + "'} WHERE AssocClass = Win32_DiskDriveToDiskPartition");
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
+            ManagementObject[] DiskDrives = searcher.Get().OfType<ManagementObject>().ToArray();
+            if (DiskDrives.Length > 0)
+            {
+                ManagementObject drive = DiskDrives.First();
+                string driveLetter = (string)drive["DeviceID"];
+                Process process = new Process();
+                process.StartInfo.FileName = "mountvol";
+                process.StartInfo.Arguments = driveLetter + " /D";
+                process.StartInfo.CreateNoWindow = true;
+                process.Start();
+                process.WaitForExit();
+            }
+        }
+        internal static void PathEditor()
+        {
+            Console.Clear();
+            Console.WriteLine("Path Editor");
+            Console.WriteLine("Type \"help\" to see commands list");
+            List<string> strs = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User).Split(';').ToList();
+            while (true)
+            {
+                Console.Write(">>> ");
+                string query = Console.ReadLine();
+                string[] splittedQuery = query.Split(' ');
+                switch (splittedQuery[0])
+                {
+                    case "help":
+                        Console.WriteLine("\nread - reads current value of PATH variable");
+                        Console.WriteLine("remove <index> - removes specified string from variable");
+                        Console.WriteLine("add - adds new string to variable");
+                        break;
+                    case "read":
+                        Console.Write("\n");
+                        for (int i = 1; i < strs.Count; i++)
+                            Console.WriteLine($"{i}: {strs[i - 1]}");
+                        Console.Write("\n");
+                        break;
+                    case "remove":
+                        if (splittedQuery.Length < 2)
+                        {
+                            Log.Error("Got less than one argument.");
+                            break;
+                        }
+                        int index = 0;
+                        if (!int.TryParse(splittedQuery[1], out index))
+                        {
+                            Log.Error("Not a number!");
+                            return;
+                        }
+                        if (index < 0 || index > strs.Count - 1)
+                        {
+                            Log.Error("Invalid index!");
+                            return;
+                        }
+                        strs.RemoveAt(index - 1);
+                        Console.WriteLine("\nNew value: \n");
+                        for (int i = 1; i < strs.Count; i++)
+                            Console.WriteLine($"{i}: {strs[i - 1]}");
+                        Console.Write("\n");
+                        break;
+                    case "save":
+                        try
+                        {
+                            Environment.SetEnvironmentVariable("PATH", null, EnvironmentVariableTarget.User);
+                            Environment.SetEnvironmentVariable("PATH", string.Join(";", strs), EnvironmentVariableTarget.User);
+                        } catch (Exception ex)
+                        {
+                            ErrorHandler.HandleError(ex);
+                        }
+                        break;
+                }
+            }
         }
     }
 }

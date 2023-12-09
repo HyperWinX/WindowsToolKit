@@ -11,6 +11,10 @@ namespace WindowsToolKit
             string logMessage = $"{DateTime.Now} [{level}] {message}";
             File.AppendAllText(logfile, logMessage + Environment.NewLine);
         }
+        public void LogClear()
+        {
+            File.WriteAllText(logfile, string.Empty);
+        }
         public void LogError(string message)
         {
             Log("ERROR", message);

@@ -32,8 +32,12 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>WindowsToolKit.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -224,6 +228,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueryHandler.cs" />
+    <Compile Include="QueryHandlerMethods.cs" />
     <Compile Include="Streams\Block\Block.cs" />
     <Compile Include="Streams\Block\BlockCache.cs" />
     <Compile Include="Streams\Block\BlockCacheSettings.cs" />
@@ -271,12 +276,17 @@
     <Compile Include="Streams\WrappingMappedStream.cs" />
     <Compile Include="Streams\ZeroStream.cs" />
     <Compile Include="Tools.cs" />
-    <Compile Include="Uninstaller.cs" />
+    <Compile Include="UninstAndInstActions.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="AdditionalFiles\PowerRun.ini" />
+    <EmbeddedResource Include="AdditionalFiles\RemoverCommand.bat" />
     <None Include="App.config" />
     <None Include="app.manifest" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AdditionalFiles\PowerRun.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
